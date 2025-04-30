@@ -1,0 +1,32 @@
+import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { v4 as uuidv4 } from 'uuid';
+
+const ddb = new DynamoDBClient({ region: process.env.AWS_REGION });
+const tableName = process.env.TABLE_NAME!;
+
+interface TodoEvent {
+  todoBody: string;
+}
+
+export async function main(event: TodoEvent, context?: {}) {
+  try {
+    const command = new PutItemCommand({
+      TableName: tableName,
+      Item: {
+        id: { S: uuidv4() },
+        createdAt: { N: new Date().getTime().toFixed() },
+        body: { S: event.todoBody },
+      },
+    });
+
+    const result = await ddb.send(command);
+
+    console.log('PutItem succeeded:', JSON.stringify(result, null, 2));
+
+    return result;
+  } catch (error) {
+    console.error('Error:', error);
+    throw new Error('Error adding item to DynamoDB table');
+  }
+}
+
